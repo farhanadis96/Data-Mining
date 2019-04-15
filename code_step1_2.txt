@@ -1,0 +1,57 @@
+library(corrplot)
+library(ggplot2)
+library(readr)
+library(caret)
+library(e1071)
+getwd()
+setwd("C:/Users/Admin/Desktop/data_mining/project")
+
+data = read.csv("data.csv",header=T,stringsAsFactors=F) 
+names(data)
+data$X = NULL
+dim(data)
+data = data[,-1]
+head(data)
+dim(data)
+str(data)
+summary(data)
+
+table(data$diagnosis)
+
+summary(data[,-1])
+
+diagnosis = data[,1]
+
+data = data[,-1]
+
+dim(data)
+names(data)
+
+corr = cor(data)
+corrplot(corr,type="lower",title = "correlation of variable",tl.col=1,tl.cex=0.7)
+
+rawdata = cbind(diagnosis,data)
+head(rawdata)
+colSums(is.na(rawdata))
+dim(rawdata)
+names(rawdata)
+
+scal = as.data.frame(scale(rawdata[,-1]))
+ss = cbind(rawdata$diagnosis,scal)
+
+set.seed(145)
+partition = createDataPartition(rawdata$diagnosis,times=1,p=0.7)
+traindata = rawdata[partition$Resample1,]
+testdata= rawdata[-partition$Resample1,]
+
+dim(traindata)
+dim(testdata)
+
+set.seed(15)
+svm_mod = tune(svm, diagnosis~texture_mean + smoothness_mean + symmetry_mean + fractal_dimension_mean + smoothness_se + concavity_se + concave.points_se + symmetry_se + area_worst + symmetry_worst, data = traindata, kernel = 'linear', ranges = list(gamma = 2^(-1:1) ,cost = c(0.01,0.1,0.5,1,5)))
+summary(svm_mod)
+
+best_mod = svm_mod$best.model
+pred_1 = predict(best_mod, testdata[,-1])
+conf_mat1 = confusionMatrix(pred_1,testdata[,1],positive='M')
+conf_mat1

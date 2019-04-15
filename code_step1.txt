@@ -1,0 +1,58 @@
+library(ggplot2)
+library(readr) 
+library(caret)
+library(dplyr)
+library(ROCR)
+
+getwd()
+setwd("C:/Users/Admin/Desktop/data_mining/project")
+
+data = read.csv("data.csv", header = TRUE, sep = ',') 
+
+data$dummy.outcome <- ifelse(data$diagnosis == 'M', 1, 0)
+data$dummy.outcome <- as.factor(data$dummy.outcome)
+
+data <- data[,c(-1, -2, -33)]
+
+plot(data[c(1:9,31)], col = data$dummy.outcome)
+
+num_data <- data[sapply(data, is.numeric)]
+corr <- cor(num_data)
+
+high_corr <- findCorrelation(corr, cutoff = 0.7, verbose = T, names = T)
+high_corr_col <- colnames(num_data[high_corr])
+
+data <- data[, -which(colnames(data) %in% high_corr_col)]
+
+dim(data)
+
+glimpse(data)
+
+
+index <- createDataPartition(data$dummy.outcome, p=0.7, list = F)
+train <- data[index,]
+test <- data[-index,]
+
+dataset <- data
+control <- trainControl(method = 'repeatedcv', number = 10, repeats = 3)
+seed <- 7
+metric <- 'Accuracy'
+
+
+#random forest
+#set.seed(seed)
+rf_model <- train(dummy.outcome ~ ., data = train, method = 'rf', 
+               metric = metric, trControl = control)
+
+rf_model
+#results <- resamples(list(rf = rf_model))
+
+install.packages("randomForest")
+library(randomForest)
+rf.fit <- randomForest(dummy.outcome ~ ., data = data, 
+                       importance = TRUE, ntree = 1000)
+rf.fit
+varImpPlot(rf.fit)
+
+
+
